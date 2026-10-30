@@ -35,6 +35,7 @@ dreamDEX's own Week 2 Arena post named the behaviour: only 2 in 10 trades were e
 
 | Duel | Fight | Result | Proof |
 |---|---|---|---|
+| `3065a7f0` | NOVA (LONG) vs RAVEN (SHORT), BTC · $500/side, live on Fly | NOVA **+2.7% ROE** (+0.67), RAVEN −5.8% (−1.45) | [A open](https://smk-dev-markets-explorer-hideki-euw4-uzavbo36ra-ez.a.run.app/tx/0x60ef1c81) · [A close](https://smk-dev-markets-explorer-hideki-euw4-uzavbo36ra-ez.a.run.app/tx/0xc03b0a5a) · [B open](https://smk-dev-markets-explorer-hideki-euw4-uzavbo36ra-ez.a.run.app/tx/0xdd7ac17d) · [B close](https://smk-dev-markets-explorer-hideki-euw4-uzavbo36ra-ez.a.run.app/tx/0xf7d4dba0) |
 | `9c0bfa64` | CASHKING (LONG) vs RIVAL (SHORT), BTC · $500/side | CASHKING **+3.30**, RIVAL −4.81 USDso | [A open](https://smk-dev-markets-explorer-hideki-euw4-uzavbo36ra-ez.a.run.app/tx/0x8b82dda4a184a0955c7bfe2bd2459404cdafc6d6c06a2a50a0f2f7fe4012c81a) · [A close](https://smk-dev-markets-explorer-hideki-euw4-uzavbo36ra-ez.a.run.app/tx/0x097c394b7c144bc7a41d0de061a75dd8e00e9303ded0c8d9ff2475417191ff56) · [B open](https://smk-dev-markets-explorer-hideki-euw4-uzavbo36ra-ez.a.run.app/tx/0xd440e4b475354fa3c01642c8daa692310afa9b7482842d8acd2894763fc643cb) · [B close](https://smk-dev-markets-explorer-hideki-euw4-uzavbo36ra-ez.a.run.app/tx/0x8141328680a22ef926021abc51df77ffd870dca1d020121e184a24beaf0255fb) |
 | `ada52657` | ALPHA (SHORT) vs BRAVO (LONG), BTC | ALPHA **+0.036**, BRAVO −0.058 USDso | [A open](https://smk-dev-markets-explorer-hideki-euw4-uzavbo36ra-ez.a.run.app/tx/0xe649336bc7d7ef6f2b9b784b9afc80ca743ce281ca35d7ad1ef4c49fb8e76aae) · [A close](https://smk-dev-markets-explorer-hideki-euw4-uzavbo36ra-ez.a.run.app/tx/0x420962cd4ccd02da64439e91e9d033699c484c9a988c2edf617da1929fc776f9) · [B open](https://smk-dev-markets-explorer-hideki-euw4-uzavbo36ra-ez.a.run.app/tx/0x0b68f901a361af0553f0210cfc586eec0d447d9ebc11b5fff57fe2e539d3988c) · [B close](https://smk-dev-markets-explorer-hideki-euw4-uzavbo36ra-ez.a.run.app/tx/0xc6697ad73956cbea533e0facbe35d14571fd64f26fcdee7f13d9df88620936bb) |
 | `8069a7ea` | TESTER (LONG) vs GHOST (SHORT), ETH | GHOST **+0.008**, TESTER −0.015 USDso | [A open](https://smk-dev-markets-explorer-hideki-euw4-uzavbo36ra-ez.a.run.app/tx/0x5463270ab379a4b13fb7cc1104bfaa913c7b4d38bfaeae24220218e5ff370fac) · [A close](https://smk-dev-markets-explorer-hideki-euw4-uzavbo36ra-ez.a.run.app/tx/0x5f972c490e0d25fbec678949eaf0d7395ef754a3ed38815e78e6375c2f536989) · [B open](https://smk-dev-markets-explorer-hideki-euw4-uzavbo36ra-ez.a.run.app/tx/0x2590208e0336eeeee1fa002d5093a522a797d35c6543be9f7765722e13ed8083) · [B close](https://smk-dev-markets-explorer-hideki-euw4-uzavbo36ra-ez.a.run.app/tx/0x03d6a5b4e072ffd3f94908bf87caefbbc77b6af583e8338f680920ed32481f09) |
@@ -49,7 +50,7 @@ House wallets: A `0xDbFe5c4d0256D2459bB216caB905999Ca41bE349` · B (rival/Ghost)
 
 | | |
 |---|---|
-| **Play** | **https://perpduel-web.pages.dev** — Cloudflare Pages, static Next export |
+| **Play** | **https://perpduel-web.pages.dev** — Cloudflare Pages project `perpduel-web`, static Next export |
 | **API** | https://perpduel-api.fly.dev — Rust engine + TS executor in one container, Fly.io `ams` |
 | **Repo** | https://github.com/PhiBao/perpduel |
 | **Proof, live** | duel `b3cfea24` (DEPLOY vs CLOUD) — [open A](https://smk-dev-markets-explorer-hideki-euw4-uzavbo36ra-ez.a.run.app/tx/0x26cca41aac) · [close A](https://smk-dev-markets-explorer-hideki-euw4-uzavbo36ra-ez.a.run.app/tx/0xb6c5f77de1) · [open B](https://smk-dev-markets-explorer-hideki-euw4-uzavbo36ra-ez.a.run.app/tx/0xa67c1e2166) · [close B](https://smk-dev-markets-explorer-hideki-euw4-uzavbo36ra-ez.a.run.app/tx/0xd450b3b707) — all four confirmed on chain 50383 |
@@ -155,7 +156,8 @@ bash scripts/verify-e2e.sh                      # full 60s BTC duel vs a rival t
 
 ## X posts
 
-<!-- REQUIRED: post 2–3 posts tagging @DreamDEXSomnia, then paste the links here before submitting. Drafts in X_POSTS.md. -->
-- Post 1 (launch challenge): _paste link_
-- Post 2 (live proof / how it settles): _paste link_
-- Post 3 (result + rematch call): _paste link_
+- Launch — [x.com/0xMemeshe/status/2115553355397554449](https://x.com/0xMemeshe/status/2115553355397554449)
+- Proof — [x.com/0xMemeshe/status/2115810427380895785](https://x.com/0xMemeshe/status/2115810427380895785)
+- Demo video (109s) — [x.com/0xMemeshe/status/2116310475751440884](https://x.com/0xMemeshe/status/2116310475751440884)
+
+All three tag @DreamDEXSomnia.

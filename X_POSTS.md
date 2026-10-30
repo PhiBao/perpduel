@@ -1,7 +1,13 @@
 # X posts — required for submission
 
 The bounty asks for **2–3 public posts about the MVP that tag @DreamDEXSomnia** and a README section
-linking them. Post from your account, then paste the URLs into the README "X posts" block below.
+linking them. **Done — posted and linked in the README.**
+
+| # | Post | URL |
+|---|---|---|
+| 1 | Launch / challenge | https://x.com/0xMemeshe/status/2115553355397554449 |
+| 2 | Proof / how it settles | https://x.com/0xMemeshe/status/2115810427380895785 |
+| 3 | 109s demo video | https://x.com/0xMemeshe/status/2116310475751440884 |
 
 **Live app:** https://perpduel-web.pages.dev
 **Demo video:** `docs/perpduel-demo.mp4` (108.9 s, 1920×1080, H.264/AAC, 12 MB — inside X's 2:20 / 512 MB limits)

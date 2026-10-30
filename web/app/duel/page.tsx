@@ -59,7 +59,8 @@ function Tape({ duel }: { duel: Duel }) {
 function FighterCard({ p, duel, align }: { p: Duel["creator"]; duel: Duel; align?: "right" }) {
   return (
     <div className={`fighter ${align ? "right" : ""} ${p.side === "LONG" ? "long" : "short"}`}>
-      <div className="fname">{p.name}{p.cashed_out ? " · CHICKEN" : ""}</div>
+      <div className="fname">{p.name}</div>
+      {p.cashed_out && <div className="ftag">cashed out early</div>}
       <div className="fside">{p.side === "LONG" ? "▲ LONG" : "▼ SHORT"}</div>
       <div className="fpnl" style={{ color: p.pnl_usd >= 0 ? "var(--green)" : "var(--red)" }}>{fmtRoe(p.roe_pct)}</div>
       <div style={{ fontSize: 14 }}>{fmtUsd(p.pnl_usd)} · on ${duel.notional_usd} size</div>

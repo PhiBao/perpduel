@@ -4,11 +4,10 @@
   "type": "module",
   "scripts": {
     "doctor": "tsx executor/src/doctor.ts",
-    "setup-wallets": "tsx executor/src/setup-wallets.ts",
-    "fund-b": "tsx executor/src/fund-b.ts",
-    "spike": "tsx executor/src/spike-order.ts",
     "executor": "tsx executor/src/server.ts",
     "backend": "cargo run --manifest-path backend/Cargo.toml",
+    "fund-b": "tsx executor/src/fund-b.ts",
+    "topup": "tsx executor/src/topup-wallets.ts",
     "verify:e2e": "bash scripts/verify-e2e.sh",
     "test": "cargo test --manifest-path backend/Cargo.toml && npx tsc --noEmit"
   },

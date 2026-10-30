@@ -1,15 +1,23 @@
+# secrets & local state
 .env
-node_modules
-.next
-dist
-*.log
+.env.local
+.env.*.local
 duels.json
-target
-.next
-out
+
+# dependencies & build output
+node_modules/
+web/node_modules/
+backend/target/
+dist/
+out/
+.next/
+web/.next/
+web/out/
 web/tsconfig.tsbuildinfo
-web/node_modules
-.vercel
-web/.vercel
-web/.env.local
-.env*
+
+# hosts
+.vercel/
+web/.vercel/
+
+# logs
+*.log
