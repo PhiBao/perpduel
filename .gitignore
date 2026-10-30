@@ -9,3 +9,6 @@ target
 out
 web/tsconfig.tsbuildinfo
 web/node_modules
+.vercel
+web/.vercel
+web/.env.local
