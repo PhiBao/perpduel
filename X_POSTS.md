@@ -1,29 +1,88 @@
 # X posts — required for submission
 
-Post these 2–3 from your X account, tagging **@DreamDEXSomnia**, then paste the
-post URLs into the README "X posts" section. Suggested order: Post 1 when the
-demo is live, Post 2 after the first settled duel, Post 3 as the rematch call.
+The bounty asks for **2–3 public posts about the MVP that tag @DreamDEXSomnia** and a README section
+linking them. Post from your account, then paste the URLs into the README "X posts" block below.
 
-## Post 1 — launch challenge
-> Arena lets you climb a leaderboard alone. I built the missing fight.
->
-> PERPDUEL: send a link, your rival takes the other side of a BTC/ETH perp,
-> both real testnet orders open on @DreamDEXSomnia, the clock closes both,
-> and the winner is settled from actual fills — not a screenshot.
->
-> First challenger gets me LONG. Who takes SHORT? 👇 [demo link]
+**Live app:** https://perpduel-web.pages.dev
+**Demo video:** `docs/perpduel-demo.mp4` (108.9 s, 1920×1080, H.264/AAC, 12 MB — inside X's 2:20 / 512 MB limits)
 
-## Post 2 — proof
-> Every PERPDUEL result ships its receipts: 4 txs (2 opens, 2 closes) on
-> Somnia Hideki, entries/exits from real fills, PnL = (exit − entry) × qty.
->
-> Duel #ada52657: ALPHA +0.036 vs BRAVO −0.058 USDso. Verify it yourself —
-> no trust, no cropped PnL card. @DreamDEXSomnia [proof link]
+---
 
-## Post 3 — rematch / call for rivals
-> The Ghost (our house short) is 2–1 up on challengers so far.
->
-> 60-second Blitz duel, $100 a side, real @DreamDEXSomnia testnet orders.
-> Beat a person, not a leaderboard: [challenge link]
->
-> Loser posts the card. That's the rule.
+## Post 3 — the one with the video attached
+
+Attach `docs/perpduel-demo.mp4`. Paste this text, then put the link in the **first reply** (X down-ranks
+posts with outbound links; the video carries the reach, the reply carries the click).
+
+```
+A perps competition ranks you on a leaderboard. You never beat anyone in particular.
+
+So I built PERPDUEL: send a link, your rival takes the other side of a BTC/ETH perp, both orders hit the
+dreamDEX book, and the clock closes both. 109 seconds, real testnet orders, no wallet needed.
+
+Winner is settled from actual fills — and every duel ships four tx hashes you can open.
+
+@DreamDEXSomnia
+```
+
+Reply 1:
+
+```
+Play it: https://perpduel-web.pages.dev
+
+Proof, not screenshots — duel b3cfea24, all four receipts confirmed on Somnia Tokyo (Hideki 50383):
+0x26cca41aac… 0xb6c5f77de1… 0xa67c1e2166… 0xd450b3b707…
+
+Code: https://github.com/PhiBao/perpduel
+```
+
+---
+
+## Post 1 — launch / challenge (post this first, no video)
+
+```
+Sent a friend a link. He picked SHORT on BTC-PERP. I was LONG. Both orders went to the dreamDEX book
+within 0.05s of each other, a live ROE race ran for five minutes, and either of us could cash out.
+
+That is PERPDUEL — 1v1 perps duels on @DreamDEXSomnia testnet. No wallet, no faucet, no signup.
+
+First challenger gets me. Who takes the other side?
+```
+
+Reply: `https://perpduel-web.pages.dev`
+
+---
+
+## Post 2 — proof / how it settles (post after the first real duel)
+
+```
+Every PERPDUEL result comes with its receipts: four transactions per duel — two opens, two closes —
+confirmed on Somnia Tokyo (Hideki 50383).
+
+The race is return on the margin each side actually locked, priced at the book its close would hit.
+The settlement statement lists entry, exit, funding and net ROE from real fills.
+
+No cropped PnL card. @DreamDEXSomnia
+```
+
+Reply: the four explorer links for the duel you quote.
+
+---
+
+## Posting checklist
+
+1. Post 1 → pin it if you have nothing else pinned.
+2. Post 3 with the video (the highest-reach one) — attach the file, link in the reply.
+3. Post 2 after you have a fresh duel to point at (create one on the live app first, so the numbers are current).
+4. Copy each post URL (click the post → copy link) into the README block below.
+5. Optional but useful for the submission page: upload the same MP4 to YouTube (unlisted is fine) and use
+   that link as the "demo video" field if DoraHacks asks for one — X links sometimes require a login.
+
+## README block to paste (replace the placeholders)
+
+```md
+## X posts
+
+- Post 1 — launch: <url>
+- Post 2 — proof: <url>
+- Post 3 — 109s demo video: <url>
+```
