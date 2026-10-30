@@ -45,6 +45,19 @@ House wallets: A `0xDbFe5c4d0256D2459bB216caB905999Ca41bE349` · B (rival/Ghost)
 ![Home](docs/demo-home.png)
 ![Settled duel with proof links](docs/demo-result.png)
 
+## Live
+
+| | |
+|---|---|
+| **Play** | **https://perpduel-web.pages.dev** — Cloudflare Pages, static Next export |
+| **API** | https://perpduel-api.fly.dev — Rust engine + TS executor in one container, Fly.io `ams` |
+| **Repo** | https://github.com/PhiBao/perpduel |
+| **Proof, live** | duel `b3cfea24` (DEPLOY vs CLOUD) — [open A](https://smk-dev-markets-explorer-hideki-euw4-uzavbo36ra-ez.a.run.app/tx/0x26cca41aac) · [close A](https://smk-dev-markets-explorer-hideki-euw4-uzavbo36ra-ez.a.run.app/tx/0xb6c5f77de1) · [open B](https://smk-dev-markets-explorer-hideki-euw4-uzavbo36ra-ez.a.run.app/tx/0xa67c1e2166) · [close B](https://smk-dev-markets-explorer-hideki-euw4-uzavbo36ra-ez.a.run.app/tx/0xd450b3b707) — all four confirmed on chain 50383 |
+
+The API scales to zero between uses (a cost decision): the first request after idle takes about 10 seconds
+while Fly boots the machine, so the web app shows a "waking the arena" state and retries instead of failing.
+An active duel holds the machine awake — the 1-second race polling is also the keep-alive.
+
 ## Watch the 109-second demo
 
 [`docs/perpduel-demo.mp4`](docs/perpduel-demo.mp4) — narrated, subtitled, 1080p. It shows the real product end to end: create a
@@ -68,6 +81,21 @@ Rendered with [open-video-demo](https://github.com/PhiBao/open-video-demo); subt
 | `executor/` | TypeScript + `@somnia-chain/markets-sdk` 0.32.1 | The only key-holder. Pre-flight `getMaxPerpOrderSize` guards, tick/lot alignment, IOC placement/close for wallets A/B behind a shared-secret localhost API. |
 
 **Why a TS executor beside a Rust core (deliberate exception):** the official markets SDK is TypeScript-only and already encodes the per-market decimal/tick/lot and sizing guardrails that dreamDEX's own docs warn hand-rolled callers about. All product logic — state, timing, PnL, settlement, proof — lives in typed Rust; the TS service only signs and submits what Rust instructs. The executor holds house testnet keys only, binds to `127.0.0.1`, and requires a shared secret header.
+
+### Deployed topology
+
+```
+browser ──► perpduel-web.pages.dev   (Cloudflare Pages, static export, CDN)
+   │
+   └── fetch ──► perpduel-api.fly.dev  (Fly.io, one 512MB machine, scale-to-zero)
+                    ├─ Rust duel engine  :8080  ← the only public port
+                    └─ TS executor      127.0.0.1:4101  ← holds the house keys, never exposed
+                    └─ /data/duels.json  (Fly volume: proof ledger survives restarts)
+```
+
+`deploy/Dockerfile` builds both processes into one image; `deploy/entrypoint.sh` starts the executor
+on loopback first, waits for its health endpoint, then runs the backend. Secrets (`PRIVATE_KEY`,
+`PRIVATE_KEY_B`, `EXECUTOR_SECRET`) are Fly secrets, never in the image or the repo.
 
 ### Data flow
 
