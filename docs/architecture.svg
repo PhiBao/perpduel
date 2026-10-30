@@ -1,0 +1,57 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1180" height="560" viewBox="0 0 1180 560" font-family="monospace">
+  <rect width="1180" height="560" fill="#0a0a0a"/>
+  <text x="40" y="52" fill="#f5f0e6" font-size="26" font-weight="bold">PERPDUEL — how a duel settles</text>
+  <text x="40" y="80" fill="#9a958a" font-size="14">Every arrow that touches the chain produces a public transaction hash. PnL is computed from fill prices, never typed in.</text>
+
+  <rect x="40" y="120" width="220" height="110" fill="#141311" stroke="#f5f0e6" stroke-width="2"/>
+  <text x="60" y="152" fill="#f5f0e6" font-size="17" font-weight="bold">FIGHTER A</text>
+  <text x="60" y="178" fill="#9a958a" font-size="13">clicks challenge link</text>
+  <text x="60" y="198" fill="#9a958a" font-size="13">picks LONG or SHORT</text>
+  <text x="60" y="218" fill="#3dff7a" font-size="13">no wallet · no signup</text>
+
+  <rect x="40" y="300" width="220" height="110" fill="#141311" stroke="#f5f0e6" stroke-width="2"/>
+  <text x="60" y="332" fill="#f5f0e6" font-size="17" font-weight="bold">FIGHTER B / GHOST</text>
+  <text x="60" y="358" fill="#9a958a" font-size="13">rival accepts, or the</text>
+  <text x="60" y="378" fill="#9a958a" font-size="13">house Ghost fills the seat</text>
+  <text x="60" y="398" fill="#ff3b5c" font-size="13">takes the opposite side</text>
+
+  <rect x="360" y="190" width="250" height="150" fill="#171408" stroke="#ffd23f" stroke-width="2"/>
+  <text x="380" y="222" fill="#ffd23f" font-size="17" font-weight="bold">RUST DUEL ENGINE</text>
+  <text x="380" y="248" fill="#f5f0e6" font-size="13">duel state machine</text>
+  <text x="380" y="268" fill="#f5f0e6" font-size="13">1s mark-price race loop</text>
+  <text x="380" y="288" fill="#f5f0e6" font-size="13">PnL = (exit−entry) × signed qty</text>
+  <text x="380" y="308" fill="#f5f0e6" font-size="13">proof ledger (duels.json)</text>
+  <text x="380" y="328" fill="#9a958a" font-size="12">Axum · Tokio · unit-tested math</text>
+
+  <rect x="710" y="190" width="200" height="150" fill="#141311" stroke="#3dff7a" stroke-width="2"/>
+  <text x="730" y="222" fill="#3dff7a" font-size="17" font-weight="bold">TS EXECUTOR</text>
+  <text x="730" y="248" fill="#f5f0e6" font-size="13">@somnia-chain/</text>
+  <text x="730" y="268" fill="#f5f0e6" font-size="13">markets-sdk 0.32.1</text>
+  <text x="730" y="288" fill="#f5f0e6" font-size="13">getMaxPerpOrderSize</text>
+  <text x="730" y="308" fill="#f5f0e6" font-size="13">guards before signing</text>
+  <text x="730" y="328" fill="#9a958a" font-size="12">the only key-holder</text>
+
+  <rect x="970" y="120" width="180" height="110" fill="#0f2e1a" stroke="#3dff7a" stroke-width="2"/>
+  <text x="990" y="152" fill="#f5f0e6" font-size="15" font-weight="bold">WALLET A</text>
+  <text x="990" y="176" fill="#9a958a" font-size="12">house wallet</text>
+  <text x="990" y="196" fill="#9a958a" font-size="12">MarginBank USDso</text>
+
+  <rect x="970" y="300" width="180" height="110" fill="#2e0f14" stroke="#ff3b5c" stroke-width="2"/>
+  <text x="990" y="332" fill="#f5f0e6" font-size="15" font-weight="bold">WALLET B</text>
+  <text x="990" y="356" fill="#9a958a" font-size="12">rival / Ghost wallet</text>
+  <text x="990" y="376" fill="#9a958a" font-size="12">MarginBank USDso</text>
+
+  <rect x="360" y="420" width="550" height="90" fill="#141311" stroke="#f5f0e6" stroke-width="2"/>
+  <text x="380" y="452" fill="#f5f0e6" font-size="16" font-weight="bold">dreamDEX PERPS · SOMNIA HIDEKI (50383)</text>
+  <text x="380" y="478" fill="#9a958a" font-size="13">BTC/ETH PerpPool CLOB · IOC orders cross the real book · clock auto-closes both</text>
+  <text x="380" y="498" fill="#9a958a" font-size="13">open tx + close tx per fighter → proof page + explorer links</text>
+
+  <path d="M260 175 L360 235" stroke="#f5f0e6" stroke-width="2" fill="none" marker-end="url(#a)"/>
+  <path d="M260 355 L360 295" stroke="#f5f0e6" stroke-width="2" fill="none" marker-end="url(#a)"/>
+  <path d="M610 265 L710 265" stroke="#ffd23f" stroke-width="2" fill="none" marker-end="url(#a)"/>
+  <path d="M910 230 L970 180" stroke="#3dff7a" stroke-width="2" fill="none" marker-end="url(#a)"/>
+  <path d="M910 300 L970 350" stroke="#ff3b5c" stroke-width="2" fill="none" marker-end="url(#a)"/>
+  <path d="M1030 230 L900 420" stroke="#9a958a" stroke-width="1.5" fill="none" stroke-dasharray="5,4" marker-end="url(#a)"/>
+  <path d="M1010 410 L920 460" stroke="#9a958a" stroke-width="1.5" fill="none" stroke-dasharray="5,4" marker-end="url(#a)"/>
+  <defs><marker id="a" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M0 0 L8 4 L0 8 Z" fill="#f5f0e6"/></marker></defs>
+</svg>

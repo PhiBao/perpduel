@@ -1,0 +1,9 @@
+.env
+node_modules
+.next
+dist
+*.log
+duels.json
+target
+.next
+out
