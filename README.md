@@ -18,10 +18,12 @@ dreamDEX's own Week 2 Arena post named the behaviour: only 2 in 10 trades were e
 
 ## What PERPDUEL does
 
-1. **Create** — pick a fighter name, BTC-PERP or ETH-PERP, LONG or SHORT, and a clock (60s Blitz / 5m / 15m). You get a challenge link. No wallet, no faucet, no signup.
+1. **Create** — pick a fighter name (your @handle builds a record), BTC/ETH/SOL/HYPE-PERP, LONG or SHORT, size ($100 / $250 / $500 per side) and a clock (60s Blitz / 5m / 15m). You get a challenge link. No wallet, no faucet, no signup.
 2. **Accept** — a rival opens the link and takes the opposite side (or you fight the **Ghost**, a disclosed house-wallet opponent, so a duel always runs solo in under 10 seconds).
-3. **Fight** — the Rust duel engine instructs the executor to place two real $100 IOC orders on the dreamDEX CLOB (one per house wallet), then streams the live mark price into a 1-second PnL race.
-4. **Settle** — at zero, the engine closes both positions with real opposite orders. Final PnL is computed from **actual fill prices**: `PnL = (exit − entry) × signed qty`. Winner, result card, and a proof page with all four transaction hashes.
+3. **Fight** — the Rust duel engine places two real IOC orders in parallel on the dreamDEX CLOB (one per house wallet), then races ROE — return on the margin each position actually locked — over a live price tape with both entry lines and liquidation levels.
+4. **Decide** — either fighter can **CASH OUT (chicken)** at any moment: both positions close immediately at market and settle. Bank a lead, cut a loss, deny a comeback. Only the fighter's own secret token (issued to their browser) can pull this trigger.
+5. **Settle** — at zero (or on a cash-out), both positions close with real opposite orders. A settlement statement breaks out price PnL, funding settled, margin locked, and **net ROE** — all from actual fill prices. Winner, result card, proof page with all four transaction hashes.
+6. **Run it back** — REMATCH swaps sides and reserves the rival's seat; a running series score (first blood counts — CASHKING leads RIVAL 2–0 in our test series) and a public fighter standings board (W/L, net PnL, best ROE, streaks) give the loop memory.
 
 ### Why this is the MVP worth using
 
@@ -33,6 +35,7 @@ dreamDEX's own Week 2 Arena post named the behaviour: only 2 in 10 trades were e
 
 | Duel | Fight | Result | Proof |
 |---|---|---|---|
+| `9c0bfa64` | CASHKING (LONG) vs RIVAL (SHORT), BTC · $500/side | CASHKING **+3.30**, RIVAL −4.81 USDso | [A open](https://smk-dev-markets-explorer-hideki-euw4-uzavbo36ra-ez.a.run.app/tx/0x8b82dda4a184a0955c7bfe2bd2459404cdafc6d6c06a2a50a0f2f7fe4012c81a) · [A close](https://smk-dev-markets-explorer-hideki-euw4-uzavbo36ra-ez.a.run.app/tx/0x097c394b7c144bc7a41d0de061a75dd8e00e9303ded0c8d9ff2475417191ff56) · [B open](https://smk-dev-markets-explorer-hideki-euw4-uzavbo36ra-ez.a.run.app/tx/0xd440e4b475354fa3c01642c8daa692310afa9b7482842d8acd2894763fc643cb) · [B close](https://smk-dev-markets-explorer-hideki-euw4-uzavbo36ra-ez.a.run.app/tx/0x8141328680a22ef926021abc51df77ffd870dca1d020121e184a24beaf0255fb) |
 | `ada52657` | ALPHA (SHORT) vs BRAVO (LONG), BTC | ALPHA **+0.036**, BRAVO −0.058 USDso | [A open](https://smk-dev-markets-explorer-hideki-euw4-uzavbo36ra-ez.a.run.app/tx/0xe649336bc7d7ef6f2b9b784b9afc80ca743ce281ca35d7ad1ef4c49fb8e76aae) · [A close](https://smk-dev-markets-explorer-hideki-euw4-uzavbo36ra-ez.a.run.app/tx/0x420962cd4ccd02da64439e91e9d033699c484c9a988c2edf617da1929fc776f9) · [B open](https://smk-dev-markets-explorer-hideki-euw4-uzavbo36ra-ez.a.run.app/tx/0x0b68f901a361af0553f0210cfc586eec0d447d9ebc11b5fff57fe2e539d3988c) · [B close](https://smk-dev-markets-explorer-hideki-euw4-uzavbo36ra-ez.a.run.app/tx/0xc6697ad73956cbea533e0facbe35d14571fd64f26fcdee7f13d9df88620936bb) |
 | `8069a7ea` | TESTER (LONG) vs GHOST (SHORT), ETH | GHOST **+0.008**, TESTER −0.015 USDso | [A open](https://smk-dev-markets-explorer-hideki-euw4-uzavbo36ra-ez.a.run.app/tx/0x5463270ab379a4b13fb7cc1104bfaa913c7b4d38bfaeae24220218e5ff370fac) · [A close](https://smk-dev-markets-explorer-hideki-euw4-uzavbo36ra-ez.a.run.app/tx/0x5f972c490e0d25fbec678949eaf0d7395ef754a3ed38815e78e6375c2f536989) · [B open](https://smk-dev-markets-explorer-hideki-euw4-uzavbo36ra-ez.a.run.app/tx/0x2590208e0336eeeee1fa002d5093a522a797d35c6543be9f7765722e13ed8083) · [B close](https://smk-dev-markets-explorer-hideki-euw4-uzavbo36ra-ez.a.run.app/tx/0x03d6a5b4e072ffd3f94908bf87caefbbc77b6af583e8338f680920ed32481f09) |
 | `d26ae24c` | UITEST (LONG) vs GHOST (SHORT), BTC | GHOST **+0.075**, UITEST −0.100 USDso | [A open](https://smk-dev-markets-explorer-hideki-euw4-uzavbo36ra-ez.a.run.app/tx/0xe85a40d617d7cfb20baa6fb1708c5de240ef84aa203a5e81c1d88a57bd4f3f61) · [B close](https://smk-dev-markets-explorer-hideki-euw4-uzavbo36ra-ez.a.run.app/tx/0x34aecc38fee6e4fc35bafaef1c75e07cffa76638f44cef5701cce781cf7ab384) |
@@ -103,7 +106,7 @@ bash scripts/verify-e2e.sh                      # full 60s BTC duel vs a rival t
 ## Known limitations and bugs found
 
 - **SDK voucher claim reverts** while eligibility/campaign reads say claimable — reproduced on two fresh EOAs; full repro in [`feedback/perp-voucher-claim-reverts.md`](feedback/perp-voucher-claim-reverts.md). Workaround: fund wallet B from wallet A (implemented in `executor/src/fund-b.ts`).
-- One duel at a time (two house wallets). Short clocks mean small absolute PnL — the race is the product; size is fixed at $100/side so house margin stays safe.
+- One duel at a time (two house wallets). Results are scored as ROE on margin actually locked, so even a 60s duel reads as a percentage fight, not cents; sizes run $100–$500/side against house margin that is topped up automatically and was rebalanced for this build (house wallets also had their per-market leverage cap set to 10x — the account's previous 5x cap silently limited order size, found via `getPerpLeverage`).
 - If the testnet book is too thin for an IOC fill, the duel voids visibly instead of simulating a fill.
 
 ## Roadmap (post-bounty, incl. the mainnet tranche)

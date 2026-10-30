@@ -1,5 +1,5 @@
 import { createServer } from "node:http";
-import { initWallets, walletAddress, marketState, placeOrder, closePosition, positionOf, ensureMargin } from "./duel-core.js";
+import { initWallets, walletAddress, marketState, placeOrder, closePosition, positionOf, ensureMargin, flattenAll } from "./duel-core.js";
 
 const PORT = Number(process.env.EXECUTOR_PORT ?? 4101);
 const SECRET = process.env.EXECUTOR_SECRET ?? "perpduel-local";
@@ -31,8 +31,12 @@ const server = createServer(async (req, res) => {
     }
     if (req.method === "POST" && url.pathname === "/place") {
       const b = await body(req);
-      await ensureMargin(b.wallet, b.market ?? "BTC");
-      return send(res, 200, await placeOrder(b.wallet, b.market ?? "BTC", Boolean(b.isBid), Number(b.notionalUsd ?? 30)));
+      const notional = Number(b.notionalUsd ?? 100);
+      await ensureMargin(b.wallet, b.market ?? "BTC", Math.max(18, notional * 0.18));
+      return send(res, 200, await placeOrder(b.wallet, b.market ?? "BTC", Boolean(b.isBid), notional));
+    }
+    if (req.method === "POST" && url.pathname === "/flatten-all") {
+      return send(res, 200, { closed: await flattenAll() });
     }
     if (req.method === "POST" && url.pathname === "/close") {
       const b = await body(req);

@@ -38,6 +38,7 @@ export interface PlaceResult {
   qtyFilled: string; qtyFilledNum: number; avgFillPrice: number;
   fills: { qty: string; price: string }[];
   positionSize: string; entryPrice: number;
+  markAtPlace: number; marginLockedUsd: number; openedAt: string;
 }
 
 export async function placeOrder(walletId: WalletId, symbol: string, isBid: boolean, notionalUsd: number): Promise<PlaceResult> {
@@ -61,15 +62,21 @@ export async function placeOrder(walletId: WalletId, symbol: string, isBid: bool
   let qtyFilled = 0n, notionalRaw = 0n;
   for (const f of (res.fills ?? []) as any[]) { qtyFilled += f.quantityFilled; notionalRaw += (BigInt(f.quantityFilled) * BigInt(f.fillPrice)) / (10n ** BigInt(m.baseDecimals)); }
   const avgFill = qtyFilled > 0n ? Number(formatUnits((notionalRaw * (10n ** BigInt(m.baseDecimals))) / qtyFilled, m.quoteDecimals)) : 0;
-  // wait briefly then read authoritative position
+  // wait briefly then read authoritative position + locked margin
   await sleep(1200);
   const pos: any = await client.client.getPerpPosition({ marginBank: m.marginBank, account: wallets[walletId].address, pool: m.poolAddress });
+  let marginLockedUsd = notionalUsd * (Number(m.initialMarginBps ?? 500) / 10000);
+  try {
+    const an: any = await client.client.getPerpPositionAnalytics({ marginBank: m.marginBank, pool: m.poolAddress, account: wallets[walletId].address });
+    if (an?.initialMarginRequirement !== undefined) marginLockedUsd = Number(formatUnits(BigInt(an.initialMarginRequirement), 18));
+  } catch {}
   return {
     wallet: walletId, tx: res.hash, orderId: res.orderId?.toString(),
     qtyFilled: qtyFilled.toString(), qtyFilledNum: Number(formatUnits(qtyFilled, m.baseDecimals)),
     avgFillPrice: avgFill, fills: fills.map((f: any) => ({ qty: formatUnits(BigInt(f.qty), m.baseDecimals), price: formatUnits(BigInt(f.price), m.quoteDecimals) })),
     positionSize: formatUnits(BigInt(pos.size), m.baseDecimals),
     entryPrice: pos.avgEntryPrice ? Number(formatUnits(BigInt(pos.avgEntryPrice), m.quoteDecimals)) : avgFill,
+    markAtPlace: markNum, marginLockedUsd, openedAt: new Date().toISOString(),
   };
 }
 
@@ -79,7 +86,12 @@ export async function closePosition(walletId: WalletId, symbol: string) {
   const client = clients[walletId];
   const pos: any = await client.client.getPerpPosition({ marginBank: m.marginBank, account: wallets[walletId].address, pool: m.poolAddress });
   const size = BigInt(pos.size);
-  if (size === 0n) return { wallet: walletId, tx: null, qtyFilledNum: 0, avgFillPrice: 0, flat: true };
+  if (size === 0n) return { wallet: walletId, tx: null, qtyFilledNum: 0, avgFillPrice: 0, flat: true, accruedFundingUsd: 0 };
+  let accruedFundingUsd = 0;
+  try {
+    const an: any = await client.client.getPerpPositionAnalytics({ marginBank: m.marginBank, pool: m.poolAddress, account: wallets[walletId].address });
+    if (an && an.accruedFunding !== undefined) accruedFundingUsd = Number(formatUnits(BigInt(an.accruedFunding), 18));
+  } catch {}
   const isBid = size < 0n; // long position -> sell (isBid false); short -> buy
   const st: any = await client.client.getPerpState(m.poolAddress);
   const mark: bigint = st.markPrice;
@@ -92,19 +104,40 @@ export async function closePosition(walletId: WalletId, symbol: string) {
   const avgFill = qtyFilled > 0n ? Number(formatUnits((notionalRaw * (10n ** BigInt(m.baseDecimals))) / qtyFilled, m.quoteDecimals)) : 0;
   await sleep(1200);
   const after: any = await client.client.getPerpPosition({ marginBank: m.marginBank, account: wallets[walletId].address, pool: m.poolAddress });
-  return { wallet: walletId, tx: res.hash, qtyFilledNum: Number(formatUnits(qtyFilled, m.baseDecimals)), avgFillPrice: avgFill, flat: BigInt(after.size) === 0n, remaining: formatUnits(BigInt(after.size), m.baseDecimals) };
+  return { wallet: walletId, tx: res.hash, qtyFilledNum: Number(formatUnits(qtyFilled, m.baseDecimals)), avgFillPrice: avgFill, flat: BigInt(after.size) === 0n, remaining: formatUnits(BigInt(after.size), m.baseDecimals), accruedFundingUsd };
 }
 
 export async function positionOf(walletId: WalletId, symbol: string) {
   const m = await market(symbol);
   const pos: any = await clients[walletId].client.getPerpPosition({ marginBank: m.marginBank, account: wallets[walletId].address, pool: m.poolAddress });
   const ma: any = await clients[walletId].client.getMarginAccount(m.marginBank, wallets[walletId].address);
+  let liquidationPrice: number | null = null;
+  if (BigInt(pos.size) !== 0n) {
+    try {
+      const lp: any = await clients[walletId].client.getLiquidationPrice({ marginBank: m.marginBank, pool: m.poolAddress, account: wallets[walletId].address });
+      if (lp !== null && lp !== undefined && BigInt(lp) > 0n) liquidationPrice = Number(formatUnits(BigInt(lp), m.quoteDecimals));
+    } catch {}
+  }
   return {
     wallet: walletId, address: wallets[walletId].address,
     size: formatUnits(BigInt(pos.size), m.baseDecimals),
     entryPrice: pos.avgEntryPrice ? Number(formatUnits(BigInt(pos.avgEntryPrice), m.quoteDecimals)) : 0,
     equityUsd: Number(formatUnits(ma.equity, 18)), marginStatus: ma.marginStatus,
+    lockedUsd: Number(formatUnits(ma.lockedCollateral, 18)), liquidationPrice,
   };
+}
+
+/** Close every open house position across duel markets. Used on startup so a
+ *  crashed/restarted engine never leaves stale positions eating margin. */
+export async function flattenAll() {
+  const out: any[] = [];
+  for (const w of ["A", "B"] as WalletId[]) {
+    for (const sym of ["BTC", "ETH", "SOL", "HYPE"]) {
+      const p = await positionOf(w, sym);
+      if (p.size !== "0") out.push(await closePosition(w, sym));
+    }
+  }
+  return out;
 }
 
 export async function ensureMargin(walletId: WalletId, symbol: string, minUsd = 18) {
