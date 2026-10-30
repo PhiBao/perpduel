@@ -33,8 +33,25 @@ export async function marketState(symbol: string) {
   };
 }
 
-export interface PlaceResult {
-  wallet: WalletId; tx: string; orderId?: string;
+/** Top of book: what closing a long (bid) or a short (ask) would actually face.
+ *  The live race uses this, not the lagging mark, so it converges on settlement. */
+const bookCache: Record<string, { at: number; v: any }> = {};
+export async function bookTop(symbol: string) {
+  const now = Date.now();
+  if (bookCache[symbol] && now - bookCache[symbol].at < 700) return bookCache[symbol].v;
+  const m = await market(symbol);
+  const res: any = await clients.A.client.getBookTopsOnchain([{ id: m.id, poolAddress: m.poolAddress }]);
+  const tops = res?.tops ?? res ?? {};
+  const top = tops[m.id?.toLowerCase()] ?? tops[m.poolAddress?.toLowerCase()] ?? null;
+  const bid = top?.bestBid ? Number(formatUnits(BigInt(top.bestBid), m.quoteDecimals)) : null;
+  const ask = top?.bestAsk ? Number(formatUnits(BigInt(top.bestAsk), m.quoteDecimals)) : null;
+  const mid = top?.mid ? Number(formatUnits(BigInt(top.mid), m.quoteDecimals)) : (bid && ask ? (bid + ask) / 2 : null);
+  const v = { symbol, bid, ask, mid };
+  bookCache[symbol] = { at: now, v };
+  return v;
+}
+
+export interface PlaceResult {  wallet: WalletId; tx: string; orderId?: string;
   qtyFilled: string; qtyFilledNum: number; avgFillPrice: number;
   fills: { qty: string; price: string }[];
   positionSize: string; entryPrice: number;
@@ -65,10 +82,16 @@ export async function placeOrder(walletId: WalletId, symbol: string, isBid: bool
   // wait briefly then read authoritative position + locked margin
   await sleep(1200);
   const pos: any = await client.client.getPerpPosition({ marginBank: m.marginBank, account: wallets[walletId].address, pool: m.poolAddress });
-  let marginLockedUsd = notionalUsd * (Number(m.initialMarginBps ?? 500) / 10000);
+  // margin locked: read the position's own IM requirement, but never trust a
+  // figure below 1% of notional — a read taken mid-fill reports a stub margin
+  const imfMargin = notionalUsd * (Number(m.initialMarginBps ?? 500) / 10000);
+  let marginLockedUsd = imfMargin;
   try {
     const an: any = await client.client.getPerpPositionAnalytics({ marginBank: m.marginBank, pool: m.poolAddress, account: wallets[walletId].address });
-    if (an?.initialMarginRequirement !== undefined) marginLockedUsd = Number(formatUnits(BigInt(an.initialMarginRequirement), 18));
+    if (an?.initialMarginRequirement !== undefined) {
+      const read = Number(formatUnits(BigInt(an.initialMarginRequirement), 18));
+      if (read >= notionalUsd * 0.01) marginLockedUsd = read;
+    }
   } catch {}
   return {
     wallet: walletId, tx: res.hash, orderId: res.orderId?.toString(),
@@ -98,13 +121,27 @@ export async function closePosition(walletId: WalletId, symbol: string) {
   const cross = isBid ? (mark * 1005n) / 1000n : (mark * 995n) / 1000n;
   const price = alignPrice(cross, BigInt(m.tickSize), isBid);
   const qtyAbs = size < 0n ? -size : size;
-  const res: any = await client.trader.placePerpOrder({ pool: m.poolAddress, isBid, price, quantity: qtyAbs, orderType: 2 });
+  let res: any = await client.trader.placePerpOrder({ pool: m.poolAddress, isBid, price, quantity: qtyAbs, orderType: 2 });
   let qtyFilled = 0n, notionalRaw = 0n;
-  for (const f of (res.fills ?? []) as any[]) { qtyFilled += f.quantityFilled; notionalRaw += (BigInt(f.quantityFilled) * BigInt(f.fillPrice)) / (10n ** BigInt(m.baseDecimals)); }
-  const avgFill = qtyFilled > 0n ? Number(formatUnits((notionalRaw * (10n ** BigInt(m.baseDecimals))) / qtyFilled, m.quoteDecimals)) : 0;
+  const tally = (r: any) => {
+    for (const f of (r.fills ?? []) as any[]) {
+      qtyFilled += BigInt(f.quantityFilled);
+      notionalRaw += (BigInt(f.quantityFilled) * BigInt(f.fillPrice)) / (10n ** BigInt(m.baseDecimals));
+    }
+  };
+  tally(res);
+  if (qtyFilled === 0n) {
+    // a close that touched nothing must not be reported as a zero price:
+    // retry once with a wider cross before giving up
+    const wide = isBid ? (mark * 1020n) / 1000n : (mark * 980n) / 1000n;
+    const price2 = alignPrice(wide, BigInt(m.tickSize), isBid);
+    res = await client.trader.placePerpOrder({ pool: m.poolAddress, isBid, price: price2, quantity: qtyAbs, orderType: 2 });
+    tally(res);
+  }
+  const avgFill = qtyFilled > 0n ? Number(formatUnits((notionalRaw * (10n ** BigInt(m.baseDecimals))) / qtyFilled, m.quoteDecimals)) : null;
   await sleep(1200);
   const after: any = await client.client.getPerpPosition({ marginBank: m.marginBank, account: wallets[walletId].address, pool: m.poolAddress });
-  return { wallet: walletId, tx: res.hash, qtyFilledNum: Number(formatUnits(qtyFilled, m.baseDecimals)), avgFillPrice: avgFill, flat: BigInt(after.size) === 0n, remaining: formatUnits(BigInt(after.size), m.baseDecimals), accruedFundingUsd };
+  return { wallet: walletId, tx: res.hash, qtyFilledNum: Number(formatUnits(qtyFilled, m.baseDecimals)), avgFillPrice: avgFill, flat: BigInt(after.size) === 0n, remaining: formatUnits(BigInt(after.size), m.baseDecimals), accruedFundingUsd, closeFailed: qtyFilled === 0n || !avgFill };
 }
 
 export async function positionOf(walletId: WalletId, symbol: string) {

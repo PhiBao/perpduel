@@ -29,11 +29,14 @@ function Tape({ duel }: { duel: Duel }) {
   if (hist.length < 2) return null;
   const prices = hist.map(h => h[1]);
   const entries = [duel.creator.entry_price, duel.opponent?.entry_price].filter((x): x is number => !!x);
-  const min = Math.min(...prices, ...entries), max = Math.max(...prices, ...entries);
+  const lo = Math.min(...prices, ...entries), hi = Math.max(...prices, ...entries);
+  // pad the domain so the tape and the entry lines never sit on the frame edge
+  const pad = Math.max((hi - lo) * 0.12, Math.abs(hi) * 0.0004);
+  const min = lo - pad, max = hi + pad;
   const span = max - min || 1;
-  const W = 640, H = 130, pad = 6;
-  const x = (i: number) => pad + (i / (hist.length - 1)) * (W - pad * 2);
-  const y = (v: number) => pad + (1 - (v - min) / span) * (H - pad * 2);
+  const W = 640, H = 150, p = 8;
+  const x = (i: number) => p + (i / (hist.length - 1)) * (W - p * 2);
+  const y = (v: number) => p + (1 - (v - min) / span) * (H - p * 2);
   const pts = hist.map((h, i) => `${x(i)},${y(h[1])}`).join(" ");
   return (
     <div style={{ marginTop: 18 }}>
@@ -42,7 +45,7 @@ function Tape({ duel }: { duel: Duel }) {
         {duel.opponent?.entry_price && <line x1={0} x2={W} y1={y(duel.opponent.entry_price)} y2={y(duel.opponent.entry_price)} stroke="#ff3b5c" strokeDasharray="5,4" strokeWidth="1" />}
         <polyline points={pts} fill="none" stroke="#f5f0e6" strokeWidth="1.6" />
       </svg>
-      <div className="racecap"><span>price tape · dashed = entries</span><span>low {fmtPx(min)} · high {fmtPx(max)}</span></div>
+      <div className="racecap"><span>price tape · dashed = entries</span><span>low {fmtPx(lo)} · high {fmtPx(hi)}</span></div>
     </div>
   );
 }
@@ -151,7 +154,7 @@ export default function DuelPage() {
       {duel.status === "LIVE" && (
         <>
           <div className="racebar"><div className="rl" style={{ width: `${creatorShare}%` }} /><div className="rr" /></div>
-          <div className="racecap"><span>{c.name} {fmtRoe(c.roe_pct)}</span><span>live race — ROE on locked margin · indicative until settlement</span><span>{o?.name} {fmtRoe(o?.roe_pct)}</span></div>
+          <div className="racecap"><span>{c.name} {fmtRoe(c.roe_pct)}</span><span>live race — ROE if you closed now, at book bid/ask</span><span>{o?.name} {fmtRoe(o?.roe_pct)}</span></div>
           <Tape duel={duel} />
           {myToken ? (
             <div style={{ marginTop: 16 }}>
@@ -170,7 +173,7 @@ export default function DuelPage() {
         <section className="card">
           <h2>{isCreator ? "Your challenge is live" : duel.reserved_opponent ? `Rematch — ${duel.reserved_opponent}, your seat is reserved` : `Accept ${c.name}'s challenge`}</h2>
           <p style={{ color: "var(--dim)", fontSize: 13, lineHeight: 1.7 }}>
-            {c.name} is <b style={{ color: c.side === "LONG" ? "var(--green)" : "var(--red)" }}>{c.side}</b> on {duel.market}-PERP, ${duel.notional_usd} a side, {duel.duration_sec}s.
+            {c.name} is <b style={{ color: c.side === "LONG" ? "var(--green)" : "var(--red)" }}>{c.side}</b> on {duel.market}-PERP, ${duel.notional_usd} a side, {duel.duration_sec >= 60 ? `${Math.round(duel.duration_sec / 60)} min` : `${duel.duration_sec}s`}.
             {isCreator ? " Send this link to a rival. The moment they accept, both real testnet orders open." : ` Accepting puts you ${c.side === "LONG" ? "SHORT" : "LONG"} with a real testnet order. No wallet needed.`}
           </p>
           <label>Challenge link</label>
@@ -219,7 +222,7 @@ export default function DuelPage() {
         </section>
       )}
 
-      <section className="card proof">
+      {duel.creator.open_tx && <section className="card proof">
         <h3>Settlement statement — verify it yourself</h3>
         {[c, ...(o ? [o] : [])].map(p => (
           <div key={p.name} style={{ marginBottom: 10 }}>
@@ -233,11 +236,11 @@ export default function DuelPage() {
           </div>
         ))}
         <div style={{ color: "var(--dim)" }}>
-          Winner is scored on net PnL (price PnL minus funding owed) from actual fill prices. Live race ROE is indicative; settlement uses fills, so a photo-finish can flip the live leader — that's the market, not a bug.
+          Winner is scored on net PnL (price PnL minus funding owed) from actual fill prices. The live race prices each side at the book it would have to close into (bid for a long, ask for a short), so it tracks settlement closely; a fast tape can still move it in the last seconds.
           {duel.entry_gap_sec !== null && duel.entry_gap_sec !== undefined ? ` Entries landed ${Math.abs(duel.entry_gap_sec).toFixed(1)}s apart (parallel orders, disclosed).` : ""}
           Chain: Somnia Tokyo (Hideki 50383) via @somnia-chain/markets-sdk.
         </div>
-      </section>
+      </section>}
     </>
   );
 }

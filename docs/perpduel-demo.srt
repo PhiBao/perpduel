@@ -1,0 +1,114 @@
+1
+00:00:00,100 --> 00:00:03,710
+Every perps competition puts you on a leaderboard.
+
+2
+00:00:03,660 --> 00:00:06,695
+You never beat anyone in particular.
+
+3
+00:00:06,695 --> 00:00:08,647
+This is a duel.
+
+4
+00:00:09,259 --> 00:00:15,166
+dreamDEX's own arena review: thirty-five percent of trades that went
+green still closed red.
+
+5
+00:00:15,115 --> 00:00:17,731
+A leaderboard cannot fix that.
+
+6
+00:00:17,731 --> 00:00:20,792
+A PnL screenshot proves nothing.
+
+7
+00:00:21,400 --> 00:00:25,214
+Pick a market, a side, a size, a clock.
+
+8
+00:00:25,164 --> 00:00:28,429
+No wallet, no faucet, no signup.
+
+9
+00:00:28,429 --> 00:00:32,421
+The fighter who accepts takes the other side of a real trade.
+
+10
+00:00:33,940 --> 00:00:36,759
+The challenge link is the whole funnel.
+
+11
+00:00:36,709 --> 00:00:41,250
+A rival opens it, types a name, and accepts the opposite side.
+
+12
+00:00:41,250 --> 00:00:44,299
+Nothing to install, nothing to fund.
+
+13
+00:00:44,930 --> 00:00:47,163
+Then the fight is real.
+
+14
+00:00:47,113 --> 00:00:50,850
+Both orders hit the dreamDEX book in parallel.
+
+15
+00:00:50,850 --> 00:00:55,875
+The race is return on margin actually locked, with entry lines on a
+live tape.
+
+16
+00:00:55,875 --> 00:01:00,595
+Either fighter can cash out, and that closes both positions at market.
+
+17
+00:01:01,200 --> 00:01:04,644
+Settlement is a statement, not a screenshot.
+
+18
+00:01:04,594 --> 00:01:10,411
+Entry, exit, funding, margin locked, net return, all from actual
+fills.
+
+19
+00:01:10,411 --> 00:01:15,423
+Four transaction hashes, one per order, each openable on the explorer.
+
+20
+00:01:16,030 --> 00:01:18,314
+Do not trust the page.
+
+21
+00:01:18,264 --> 00:01:25,253
+Ask the chain: two opens, two closes, each a confirmed receipt on
+Somnia Tokyo, with its own block number.
+
+22
+00:01:25,859 --> 00:01:27,825
+Then run it back.
+
+23
+00:01:27,775 --> 00:01:31,487
+Rematch swaps sides and reserves the rival's seat.
+
+24
+00:01:31,487 --> 00:01:37,902
+The series keeps score, and every fighter carries a record: wins,
+losses, best return, streak.
+
+25
+00:01:38,530 --> 00:01:40,291
+PERPDUEL.
+
+26
+00:01:40,241 --> 00:01:45,432
+Real perp orders on testnet paper, a named opponent, and proof you can
+open.
+
+27
+00:01:45,432 --> 00:01:48,225
+Long or short: beat a person.
+

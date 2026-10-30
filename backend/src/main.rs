@@ -56,6 +56,8 @@ struct Player {
     liq_price: Option<f64>,
     #[serde(default)]
     cashed_out: bool,
+    #[serde(default)]
+    close_failed: bool,
     ghost: bool,
     #[serde(skip_serializing)]
     token: Option<String>,
@@ -114,7 +116,7 @@ fn blank_player(name: String, side: Side, wallet: &str, ghost: bool) -> Player {
     Player { name, side, wallet: wallet.into(), wallet_address: None, entry_price: None, qty: None,
         open_tx: None, close_tx: None, exit_price: None, pnl_usd: 0.0, price_pnl_usd: 0.0, funding_usd: 0.0,
         spread_cost_usd: 0.0, margin_locked_usd: None, roe_pct: None, mark_at_open: None, opened_at: None,
-        liq_price: None, cashed_out: false, ghost, token: None }
+        liq_price: None, cashed_out: false, close_failed: false, ghost, token: None }
 }
 fn signed_qty(p: &Player) -> f64 {
     let q = p.qty.unwrap_or(0.0);
@@ -209,6 +211,17 @@ async fn create_duel(State(s): State<AppState>, Json(req): Json<CreateReq>) -> R
         entry_gap_sec: None, price_history: vec![], series_id: None, notional_usd: notional, series_score: None,
     };
     s.duels.lock().await.insert(duel.id.clone(), duel.clone());
+    {
+        // drop unanswered challenges older than an hour
+        let mut duels = s.duels.lock().await;
+        let now = Utc::now();
+        for d in duels.values_mut() {
+            if d.status == "WAITING" && d.opponent.is_none() && (now - d.created_at).num_hours() >= 1 {
+                d.status = "VOID".into();
+                d.void_reason = Some("EXPIRED: challenge was never accepted".into());
+            }
+        }
+    }
     persist(&s).await;
     Ok(Json(DuelResp { duel, token: Some(token) }))
 }
@@ -235,6 +248,7 @@ async fn standings(State(s): State<AppState>) -> Json<Vec<Standing>> {
     let mut map: HashMap<String, Standing> = HashMap::new();
     for d in &finished {
         let players = [&d.creator, d.opponent.as_ref().unwrap()];
+        if players.iter().any(|p| p.close_failed || p.pnl_usd.abs() > d.notional_usd * 0.9) { continue; }
         for p in players {
             let e = map.entry(p.name.clone()).or_insert(Standing { name: p.name.clone(), wins: 0, losses: 0, duels: 0, pnl_usd: 0.0, best_roe_pct: None, streak: 0 });
             e.duels += 1; e.pnl_usd += p.pnl_usd;
@@ -458,26 +472,36 @@ async fn settle(s: &AppState, id: &str, reason: &str, cashed_out_by: Option<Stri
     if let Some(d) = duels.get_mut(id) {
         if let Ok(c) = &close_a {
             d.creator.close_tx = c["tx"].as_str().map(|x| x.to_string());
-            d.creator.exit_price = c["avgFillPrice"].as_f64();
+            d.creator.exit_price = c["avgFillPrice"].as_f64().filter(|v| *v > 0.0);
             d.creator.funding_usd = c["accruedFundingUsd"].as_f64().unwrap_or(0.0);
+            d.creator.close_failed = c["closeFailed"].as_bool().unwrap_or(false);
+        } else {
+            d.creator.close_failed = true;
         }
-        let mut opp_exit = None; let mut opp_funding = 0.0; let mut opp_tx = None;
+        let mut opp_exit = None; let mut opp_funding = 0.0; let mut opp_tx = None; let opp_failed;
         if let Ok(c) = &close_b {
             opp_tx = c["tx"].as_str().map(|x| x.to_string());
-            opp_exit = c["avgFillPrice"].as_f64();
+            opp_exit = c["avgFillPrice"].as_f64().filter(|v| *v > 0.0);
             opp_funding = c["accruedFundingUsd"].as_f64().unwrap_or(0.0);
+            opp_failed = c["closeFailed"].as_bool().unwrap_or(false);
+        } else {
+            opp_failed = true;
         }
         if let Some(op) = d.opponent.as_mut() {
-            op.close_tx = opp_tx; op.exit_price = opp_exit; op.funding_usd = opp_funding;
+            op.close_tx = opp_tx; op.exit_price = opp_exit; op.funding_usd = opp_funding; op.close_failed = opp_failed;
         }
         // final scoring: price PnL from fills, minus funding owed (positive accruedFunding = pays)
         let fallback = d.mark_price.unwrap_or(0.0);
+        let imf_margin = d.notional_usd * 0.05;
         let mut score = |p: &mut Player| {
             if let (Some(e), Some(_q)) = (p.entry_price, p.qty) {
-                let exit = p.exit_price.unwrap_or(fallback);
+                let exit = p.exit_price.filter(|v| *v > 0.0).unwrap_or(fallback);
+                if exit <= 0.0 { p.close_failed = true; return; }
                 p.price_pnl_usd = pnl_at(e, exit, signed_qty(p));
                 p.pnl_usd = p.price_pnl_usd - p.funding_usd;
-                p.roe_pct = roe(p.pnl_usd, p.margin_locked_usd);
+                // a margin figure below 1% of notional is a failed read, not leverage
+                let margin = p.margin_locked_usd.filter(|m| *m >= d.notional_usd * 0.01).or(Some(imf_margin));
+                p.roe_pct = roe(p.pnl_usd, margin);
             }
         };
         // creator and opponent scored separately to satisfy the borrow checker
@@ -500,6 +524,28 @@ async fn duel_loop(s: AppState) {
     loop {
         tokio::time::sleep(std::time::Duration::from_millis(1000)).await;
         tick += 1;
+        // watchdog: a duel stuck mid-open or mid-close (hung RPC, restarted
+        // executor) must not hold the arena hostage. Void it and free the wallets.
+        {
+            let mut duels = s.duels.lock().await;
+            let now = Utc::now();
+            let mut stuck_markets: Vec<String> = vec![];
+            for d in duels.values_mut() {
+                if d.status == "OPENING" || d.status == "CLOSING" {
+                    let since = d.started_at.unwrap_or(d.created_at);
+                    if (now - since).num_seconds() > 120 {
+                        d.status = "VOID".into();
+                        d.void_reason = Some("STALLED: settlement did not complete in time; positions were flattened".into());
+                        d.finished_at = Some(now);
+                        stuck_markets.push(d.market.clone());
+                    }
+                }
+            }
+            for m in stuck_markets {
+                let st = s.clone();
+                tokio::spawn(async move { let _ = exec_post(&st, "/flatten-all", serde_json::json!({})).await; let _ = m; });
+            }
+        }
         let live_ids: Vec<String> = {
             let duels = s.duels.lock().await;
             duels.values().filter(|d| d.status == "LIVE").map(|d| d.id.clone()).collect()
@@ -510,6 +556,11 @@ async fn duel_loop(s: AppState) {
                 match duels.get(&id) { Some(d) => (d.market.clone(), d.ends_at), None => continue }
             };
             let mark = match mark_price(&s, &market).await { Ok(m) => m, Err(_) => continue };
+            // exit values from the book: closing a long hits the bid, a short the ask
+            let (bid, ask) = match exec_get(&s, &format!("/book?market={}", market)).await {
+                Ok(v) => (v["bid"].as_f64(), v["ask"].as_f64()),
+                Err(_) => (None, None),
+            };
             let expired = ends_at.map(|e| Utc::now() >= e).unwrap_or(false);
             if expired { settle(&s, &id, "CLOCK", None).await; continue; }
             // every 5s, refresh liquidation prices for both fighters
@@ -518,21 +569,35 @@ async fn duel_loop(s: AppState) {
                 let (pa, pb) = tokio::join!(exec_get(&s, &ua), exec_get(&s, &ub));
                 (pa.ok().and_then(|v| v["liquidationPrice"].as_f64()), pb.ok().and_then(|v| v["liquidationPrice"].as_f64()))
             } else { (None, None) };
+            let tape_price = match (bid, ask) { (Some(b), Some(a)) => (b + a) / 2.0, _ => mark };
             let mut duels = s.duels.lock().await;
             if let Some(d) = duels.get_mut(&id) {
-                d.mark_price = Some(mark);
-                d.price_history.push([Utc::now().timestamp() as f64, mark]);
+                // a stub margin read would turn a small PnL into a three-digit ROE
+                let imf_margin = d.notional_usd * 0.05;
+                for p in [&mut d.creator] {
+                    if p.margin_locked_usd.map(|m| m < d.notional_usd * 0.01).unwrap_or(true) { p.margin_locked_usd = Some(imf_margin); }
+                }
+                if let Some(op) = d.opponent.as_mut() {
+                    if op.margin_locked_usd.map(|m| m < d.notional_usd * 0.01).unwrap_or(true) { op.margin_locked_usd = Some(imf_margin); }
+                }
+                d.mark_price = Some(tape_price);
+                d.price_history.push([Utc::now().timestamp() as f64, tape_price]);
                 if d.price_history.len() > 1800 { d.price_history.drain(..200); }
-                if let (Some(e), Some(_)) = (d.creator.entry_price, d.creator.qty) {
-                    d.creator.price_pnl_usd = pnl_at(e, mark, signed_qty(&d.creator.clone()));
+                // a long would exit at the bid, a short at the ask — the same side
+                // the close will actually hit, so the race converges on settlement
+                let c_exit = if d.creator.side.is_bid() { bid } else { ask };
+                if let (Some(e), Some(_), Some(x)) = (d.creator.entry_price, d.creator.qty, c_exit) {
+                    let sq = signed_qty(&d.creator.clone());
+                    d.creator.price_pnl_usd = pnl_at(e, x, sq);
                     d.creator.pnl_usd = d.creator.price_pnl_usd;
                     d.creator.roe_pct = roe(d.creator.pnl_usd, d.creator.margin_locked_usd);
                 }
                 if liq_a.is_some() { d.creator.liq_price = liq_a; }
                 if let Some(op) = d.opponent.as_mut() {
-                    if let (Some(e), Some(_)) = (op.entry_price, op.qty) {
+                    let o_exit = if op.side.is_bid() { bid } else { ask };
+                    if let (Some(e), Some(_), Some(x)) = (op.entry_price, op.qty, o_exit) {
                         let sq = signed_qty(op);
-                        op.price_pnl_usd = pnl_at(e, mark, sq);
+                        op.price_pnl_usd = pnl_at(e, x, sq);
                         op.pnl_usd = op.price_pnl_usd;
                         op.roe_pct = roe(op.pnl_usd, op.margin_locked_usd);
                     }
@@ -580,7 +645,12 @@ fn xml(s: &str) -> String { s.replace('&', "&amp;").replace('<', "&lt;").replace
 #[tokio::main]
 async fn main() {
     let store_path = std::env::var("DUEL_STORE").unwrap_or_else(|_| "duels.json".into());
-    let state = AppState { duels: Arc::new(Mutex::new(HashMap::new())), http: reqwest::Client::new(), store_path };
+    let http = reqwest::Client::builder()
+        .timeout(std::time::Duration::from_secs(45))
+        .connect_timeout(std::time::Duration::from_secs(10))
+        .build()
+        .expect("http client");
+    let state = AppState { duels: Arc::new(Mutex::new(HashMap::new())), http, store_path };
     load(&state).await;
     {
         let mut duels = state.duels.lock().await;

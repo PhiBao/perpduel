@@ -1,5 +1,5 @@
 import { createServer } from "node:http";
-import { initWallets, walletAddress, marketState, placeOrder, closePosition, positionOf, ensureMargin, flattenAll } from "./duel-core.js";
+import { initWallets, walletAddress, marketState, placeOrder, closePosition, positionOf, ensureMargin, flattenAll, bookTop } from "./duel-core.js";
 
 const PORT = Number(process.env.EXECUTOR_PORT ?? 4101);
 const SECRET = process.env.EXECUTOR_SECRET ?? "perpduel-local";
@@ -25,6 +25,9 @@ const server = createServer(async (req, res) => {
     }
     if (req.method === "GET" && url.pathname === "/state") {
       return send(res, 200, await marketState(url.searchParams.get("market") ?? "BTC"));
+    }
+    if (req.method === "GET" && url.pathname === "/book") {
+      return send(res, 200, await bookTop(url.searchParams.get("market") ?? "BTC"));
     }
     if (req.method === "GET" && url.pathname === "/position") {
       return send(res, 200, await positionOf((url.searchParams.get("wallet") ?? "A") as any, url.searchParams.get("market") ?? "BTC"));

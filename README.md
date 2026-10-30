@@ -45,6 +45,14 @@ House wallets: A `0xDbFe5c4d0256D2459bB216caB905999Ca41bE349` · B (rival/Ghost)
 ![Home](docs/demo-home.png)
 ![Settled duel with proof links](docs/demo-result.png)
 
+## Watch the 109-second demo
+
+[`docs/perpduel-demo.mp4`](docs/perpduel-demo.mp4) — narrated, subtitled, 1080p. It shows the real product end to end: create a
+$500 duel, a rival accepts the link, both orders hit the book, the race runs on ROE, NOVA cashes out,
+the settlement statement lists every number, and `verify-duel.sh` confirms all four receipts on chain 50383.
+Rendered with [open-video-demo](https://github.com/PhiBao/open-video-demo); subtitle sidecar in
+[`docs/perpduel-demo.srt`](docs/perpduel-demo.srt).
+
 ## Try the demo first (judges)
 
 1. `./start.sh`, open http://localhost:3000
@@ -80,9 +88,10 @@ npx tsx executor/src/doctor.ts   # read-only check: markets, marks, margin, vouc
 Tests and verification:
 
 ```bash
-cargo test --manifest-path backend/Cargo.toml   # PnL + side logic
+cargo test --manifest-path backend/Cargo.toml   # PnL, side, ROE, spread-cost logic
 npx tsc --noEmit                                # executor typecheck
 bash scripts/verify-e2e.sh                      # full 60s BTC duel vs a rival through the public API; asserts 4 real txs
+./scripts/verify-duel.sh <duel-id>              # checks a settled duel's four receipts against the chain RPC
 ```
 
 ## What is real, what is not
@@ -90,7 +99,7 @@ bash scripts/verify-e2e.sh                      # full 60s BTC duel vs a rival t
 | Claim | Status |
 |---|---|
 | Real perp orders on Somnia Hideki testnet | **Real** — IOC orders via the official SDK; txs linked above and on every proof page |
-| Live PnL race | **Real mark price**, indicative only (mid-duel estimate) |
+| Live PnL race | **Real book prices** — each side priced at the bid/ask its close would actually hit, so the race converges on settlement |
 | Final result | **Real** — computed from closing fill prices |
 | Fighter wallets | **House testnet wallets, disclosed** — not fighters' own wallets (see roadmap) |
 | Funding payments | Excluded from duel PnL (negligible over ≤15m) — stated in-product |
