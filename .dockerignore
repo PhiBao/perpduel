@@ -1,0 +1,10 @@
+.git
+.env
+node_modules
+**/node_modules
+backend/target
+web/.next
+web/node_modules
+docs/*.mp4
+*.log
+duels.json

@@ -688,8 +688,9 @@ async fn main() {
         .layer(cors)
         .with_state(state);
     let port: u16 = std::env::var("BACKEND_PORT").ok().and_then(|p| p.parse().ok()).unwrap_or(4102);
-    let listener = tokio::net::TcpListener::bind(("127.0.0.1", port)).await.unwrap();
-    println!("perpduel-backend on 127.0.0.1:{}", port);
+    let host = std::env::var("BIND_ADDR").unwrap_or_else(|_| "127.0.0.1".into());
+    let listener = tokio::net::TcpListener::bind((host.as_str(), port)).await.unwrap();
+    println!("perpduel-backend on {}:{}", host, port);
     axum::serve(listener, app).await.unwrap();
 }
 
