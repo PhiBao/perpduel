@@ -6,17 +6,23 @@ import { api, fmtUsd, fmtRoe, fmtPx, EXPLORER, API, loadToken, storeToken, type 
 function useDuel(id: string) {
   const [duel, setDuel] = useState<Duel | null>(null);
   const [err, setErr] = useState("");
+  const [stale, setStale] = useState(false);
   useEffect(() => {
     let stop = false;
     const load = async () => {
-      try { const d = await api<Duel>(`/api/duels/${id}`); if (!stop) setDuel(d); }
-      catch (e: any) { if (!stop) setErr(e.message ?? String(e)); }
+      try {
+        const d = await api<Duel>(`/api/duels/${id}`, undefined, { retries: 1, timeoutMs: 20000 });
+        if (!stop) { setDuel(d); setStale(false); setErr(""); }
+      } catch (e: any) {
+        // keep the last known state on a transient failure (cold start, redeploy)
+        if (!stop) setStale(true);
+      }
     };
     load();
     const t = setInterval(load, 1000);
     return () => { stop = true; clearInterval(t); };
   }, [id]);
-  return { duel, err };
+  return { duel, err, stale };
 }
 
 function TxLinks({ label, hash }: { label: string; hash: string | null }) {
@@ -71,7 +77,7 @@ export default function DuelPage() {
   const params = useParams();
   const router = useRouter();
   const id = String(params.id);
-  const { duel, err } = useDuel(id);
+  const { duel, err, stale } = useDuel(id);
   const [joinName, setJoinName] = useState("");
   const [busy, setBusy] = useState("");
   const [actErr, setActErr] = useState("");
@@ -86,7 +92,7 @@ export default function DuelPage() {
   }, []);
 
   if (err) return <div className="card"><div className="err">{err}</div></div>;
-  if (!duel) return <div className="card">Loading duel…</div>;
+  if (!duel) return <div className="card">Loading duel… <span className="dim">(the arena may be waking up; this can take ~20 seconds)</span></div>;
 
   const c = duel.creator, o = duel.opponent;
   const endsMs = duel.ends_at ? new Date(duel.ends_at).getTime() : null;
@@ -127,7 +133,10 @@ export default function DuelPage() {
   return (
     <>
       <div style={{ display: "flex", justifyContent: "space-between", flexWrap: "wrap", gap: 10 }}>
-        <span className={`badge ${duel.status.toLowerCase()}`}>{duel.status}</span>
+        <span>
+          <span className={`badge ${duel.status.toLowerCase()}`}>{duel.status}</span>
+          {stale && <span className="badge" style={{ marginLeft: 8, borderColor: "var(--gold)", color: "var(--gold)" }}>reconnecting…</span>}
+        </span>
         <span style={{ color: "var(--dim)", fontSize: 12 }}>
           DUEL #{duel.id} · {duel.market}-PERP · ${duel.notional_usd}/side · mark {fmtPx(duel.mark_price)}
           {duel.series_score ? ` · SERIES ${duel.series_score}` : ""}

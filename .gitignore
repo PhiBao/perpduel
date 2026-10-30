@@ -7,3 +7,5 @@ duels.json
 target
 .next
 out
+web/tsconfig.tsbuildinfo
+web/node_modules

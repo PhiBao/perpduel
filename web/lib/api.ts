@@ -8,6 +8,7 @@ export type Player = {
   pnl_usd: number; price_pnl_usd: number; funding_usd: number; spread_cost_usd: number;
   margin_locked_usd: number | null; roe_pct: number | null; mark_at_open: number | null;
   opened_at: string | null; liq_price: number | null; cashed_out: boolean; ghost: boolean;
+  close_failed?: boolean;
 };
 export type Duel = {
   id: string; market: string; duration_sec: number; status: string;
@@ -23,13 +24,52 @@ export type Standing = {
   pnl_usd: number; best_roe_pct: number | null; streak: number;
 };
 
-export async function api<T>(path: string, init?: RequestInit): Promise<T> {
-  const r = await fetch(`${API}${path}`, { ...init, headers: { "content-type": "application/json", ...(init?.headers ?? {}) }, cache: "no-store" });
-  const text = await r.text();
-  let data: any; try { data = JSON.parse(text); } catch { data = text; }
-  if (!r.ok) throw new Error(typeof data === "string" ? data : JSON.stringify(data));
-  return data as T;
+export class ApiError extends Error {
+  status: number;
+  constructor(message: string, status: number) { super(message); this.status = status; }
 }
+
+const sleep = (ms: number) => new Promise(r => setTimeout(r, ms));
+
+/**
+ * Fetch with retries. The backend runs on a scale-to-zero host, so the first
+ * request after idle waits for a cold start (usually 10-20s). Client errors are
+ * returned immediately — retrying "ARENA_BUSY" or a 403 only wastes time.
+ */
+export async function api<T>(path: string, init?: RequestInit, opts?: { timeoutMs?: number; retries?: number }): Promise<T> {
+  const retries = opts?.retries ?? 3;
+  const timeoutMs = opts?.timeoutMs ?? 30000;
+  let lastErr: unknown;
+  for (let attempt = 0; attempt <= retries; attempt++) {
+    const ctl = new AbortController();
+    const timer = setTimeout(() => ctl.abort(), timeoutMs);
+    try {
+      const r = await fetch(`${API}${path}`, {
+        ...init,
+        signal: ctl.signal,
+        headers: { "content-type": "application/json", ...(init?.headers ?? {}) },
+        cache: "no-store",
+      });
+      const text = await r.text();
+      let data: any; try { data = JSON.parse(text); } catch { data = text; }
+      if (!r.ok) {
+        const msg = typeof data === "string" ? data : JSON.stringify(data);
+        if (r.status >= 400 && r.status < 500) throw new ApiError(msg, r.status);
+        throw new Error(msg);
+      }
+      return data as T;
+    } catch (e) {
+      lastErr = e;
+      if (e instanceof ApiError) throw e;
+      if (attempt === retries) break;
+      await sleep(1200 * (attempt + 1));
+    } finally {
+      clearTimeout(timer);
+    }
+  }
+  throw lastErr instanceof Error ? lastErr : new Error(String(lastErr));
+}
+
 export const fmtUsd = (n: number) => `${n >= 0 ? "+" : ""}${n.toFixed(2)} USDso`;
 export const fmtRoe = (n: number | null | undefined) => n === null || n === undefined ? "—" : `${n >= 0 ? "+" : ""}${n.toFixed(1)}%`;
 export const fmtPx = (n: number | null) => n === null ? "—" : n.toLocaleString("en-US", { maximumFractionDigits: 2 });

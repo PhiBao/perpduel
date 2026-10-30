@@ -17,18 +17,23 @@ export default function Home() {
   const [standings, setStandings] = useState<Standing[]>([]);
   const [err, setErr] = useState("");
   const [busy, setBusy] = useState("");
+  const [waking, setWaking] = useState(false);
 
   useEffect(() => {
     const saved = localStorage.getItem("perpduel_name");
     if (saved) setName(saved);
     const load = async () => {
       try {
-        const m: any = await api("/api/markets");
+        const m: any = await api("/api/markets", undefined, { retries: 1 });
+        const ds = await api<Duel[]>("/api/duels", undefined, { retries: 1 });
+        const st = await api<Standing[]>("/api/standings", undefined, { retries: 1 });
         setMarkets(m.markets);
-        const ds = await api<Duel[]>("/api/duels");
         setDuels(ds.filter(d => d.status !== "VOID"));
-        setStandings(await api<Standing[]>("/api/standings"));
-      } catch {}
+        setStandings(st);
+        setWaking(false);
+      } catch {
+        setWaking(true);
+      }
     };
     load();
     const t = setInterval(load, 5000);
@@ -63,6 +68,13 @@ export default function Home() {
 
   return (
     <>
+      {waking && markets.length === 0 && (
+        <div className="wake">
+          <b>Waking the arena…</b> the backend sleeps when idle, so the first request can take up to ~20 seconds.
+          This page will fill in by itself.
+        </div>
+      )}
+
       <section className="hero">
         <h1><span className="long">Long</span> or <span className="short">Short</span>.<br />Beat a person,<br />not a leaderboard.</h1>
         <p>
@@ -74,6 +86,7 @@ export default function Home() {
         <div className="liveprices">
           {markets.map(m => <span key={m.symbol}>{m.symbol}-PERP mark <b>${m.markPrice.toLocaleString("en-US", { maximumFractionDigits: 0 })}</b></span>)}
           <span>FEES <b>zero</b></span><span>MONEY <b>paper USDso</b></span>
+          {waking && markets.length > 0 && <span className="dim">reconnecting…</span>}
         </div>
       </section>
 

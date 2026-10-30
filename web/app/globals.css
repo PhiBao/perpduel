@@ -76,3 +76,6 @@ table.ticker td { padding: 9px 6px; border-bottom: 1px solid var(--line); }
   table.ticker { font-size: 11px; } table.ticker td, table.ticker th { padding: 6px 3px; }
   .topbar { padding: 14px 16px; } main { padding: 18px 12px 40px; }
 }
+.wake { border: 2px solid var(--gold); background: #171408; color: var(--paper); padding: 14px 16px; margin-bottom: 18px; font-size: 13px; line-height: 1.6; }
+.wake b { color: var(--gold); }
+.dim { color: var(--dim); }

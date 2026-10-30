@@ -15,17 +15,27 @@ primary_region = "ams"
   source = "perpduel_data"
   destination = "/data"
 
+# Scale to zero: no machine runs (and bills) while nobody is using the app.
+# A request wakes one machine; the proxy holds the connection until it answers.
 [http_service]
   internal_port = 8080
   force_https = true
-  auto_stop_machines = false
+  auto_stop_machines = "stop"
   auto_start_machines = true
-  min_machines_running = 1
+  min_machines_running = 0
 
   [http_service.concurrency]
     type = "requests"
     hard_limit = 200
     soft_limit = 100
+
+  # Health check doubles as the readiness signal for the proxy.
+  [[http_service.checks]]
+    interval = "15s"
+    timeout = "3s"
+    grace_period = "20s"
+    method = "GET"
+    path = "/health"
 
 [[vm]]
   size = "shared-cpu-1x"
