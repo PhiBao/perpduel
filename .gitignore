@@ -12,3 +12,4 @@ web/node_modules
 .vercel
 web/.vercel
 web/.env.local
+.env*

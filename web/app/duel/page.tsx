@@ -1,7 +1,7 @@
 "use client";
-import { useEffect, useRef, useState } from "react";
-import { useParams, useRouter } from "next/navigation";
-import { api, fmtUsd, fmtRoe, fmtPx, EXPLORER, API, loadToken, storeToken, type Duel } from "../../../lib/api";
+import { Suspense, useEffect, useRef, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { api, fmtUsd, fmtRoe, fmtPx, EXPLORER, API, loadToken, storeToken, type Duel } from "../../lib/api";
 
 function useDuel(id: string) {
   const [duel, setDuel] = useState<Duel | null>(null);
@@ -73,10 +73,10 @@ function FighterCard({ p, duel, align }: { p: Duel["creator"]; duel: Duel; align
   );
 }
 
-export default function DuelPage() {
-  const params = useParams();
+function DuelBody() {
+  const params = useSearchParams();
   const router = useRouter();
-  const id = String(params.id);
+  const id = String(params.get("id") ?? "");
   const { duel, err, stale } = useDuel(id);
   const [joinName, setJoinName] = useState("");
   const [busy, setBusy] = useState("");
@@ -123,7 +123,7 @@ export default function DuelPage() {
         if (!myToken) throw new Error("Only a fighter can call a rematch.");
         const d = await api<Duel>(`/api/duels/${id}/rematch`, { method: "POST", body: JSON.stringify({ token: myToken }) });
         storeToken(d.id, d.token);
-        router.push(`/duel/${d.id}`);
+        router.push(`/duel/?id=${d.id}`);
         return;
       }
     } catch (e: any) { setActErr(e.message ?? String(e)); }
@@ -251,5 +251,13 @@ export default function DuelPage() {
         </div>
       </section>}
     </>
+  );
+}
+
+export default function DuelPage() {
+  return (
+    <Suspense fallback={<div className="card">Loading duel…</div>}>
+      <DuelBody />
+    </Suspense>
   );
 }

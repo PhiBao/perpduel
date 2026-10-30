@@ -51,7 +51,7 @@ export default function Home() {
       needName();
       const d = await api<Duel>("/api/duels", { method: "POST", body: JSON.stringify({ name: name.trim(), market, side, duration_sec: duration, notional_usd: notional }) });
       storeToken(d.id, d.token);
-      router.push(`/duel/${d.id}`);
+      router.push(`/duel/?id=${d.id}`);
     } catch (e: any) { setErr(e.message ?? String(e)); setBusy(""); }
   }
 
@@ -62,7 +62,7 @@ export default function Home() {
       const d = await api<Duel>("/api/duels", { method: "POST", body: JSON.stringify({ name: name.trim(), market, side, duration_sec: 60, notional_usd: notional }) });
       storeToken(d.id, d.token);
       await api(`/api/duels/${d.id}/ghost`, { method: "POST", body: "{}" });
-      router.push(`/duel/${d.id}`);
+      router.push(`/duel/?id=${d.id}`);
     } catch (e: any) { setErr(e.message ?? String(e)); setBusy(""); }
   }
 
@@ -154,7 +154,7 @@ export default function Home() {
               <tbody>
                 {duels.map(d => (
                   <tr key={d.id}>
-                    <td><a href={`/duel/${d.id}`}>#{d.id}</a></td>
+                    <td><a href={`/duel/?id=${d.id}`}>#{d.id}</a></td>
                     <td>{d.market} · ${d.notional_usd}</td>
                     <td>{d.creator.name} vs {d.opponent?.name ?? "…"}{d.series_score ? ` · ${d.series_score}` : ""}</td>
                     <td><span className={(d.creator.roe_pct ?? 0) >= 0 ? "pos" : "neg"}>{fmtRoe(d.creator.roe_pct)}</span>{" / "}
